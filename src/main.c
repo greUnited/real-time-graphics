@@ -4,6 +4,7 @@
 #include <GL/gl.h>
 #include <stdio.h>
 #include "main.h"
+#include "wgl_file_loading.h"
 
 int WINAPI
 wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is_shown)
@@ -121,9 +122,13 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
 
+	// OpenGL shader source
+	char *tri_vertex_source = wgl_load_shader_source("shaders/equi_tri_vertex.glsl");
+	char *tri_fragment_source = wgl_load_shader_source("shaders/equi_tri_fragment.glsl");
+	
 	// OpenGL shaders
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &temp_vertex_shader_source, NULL);
+	glShaderSource(vertex_shader, 1, &tri_vertex_source, NULL);
 	glCompileShader(vertex_shader);
 
 	GLint shader_success;
@@ -136,7 +141,7 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	}
 
 	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &temp_fragment_shader_source, NULL);
+	glShaderSource(fragment_shader, 1, &tri_fragment_source, NULL);
 	glCompileShader(fragment_shader);
 
 	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &shader_success);
@@ -175,10 +180,12 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 			TranslateMessage(&main_message_buffer);
 			DispatchMessage(&main_message_buffer);
 		}
+
 		glClearColor(0.3f, 0.4f, 0.56f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		SwapBuffers(main_device_context);
+
 	}
 
 	return 0;
