@@ -62,6 +62,14 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 		0, 0, 0								// Ignore layer, visible and damage mask
 	};
 
+	// Enable the above settings for an OpenGL context
+	HDC main_device_context = GetDC(window);
+	int pixel_format = ChoosePixelFormat(main_device_context, &pixel_format_descriptor);
+	SetPixelFormat(main_device_context, pixel_format, &pixel_format_descriptor);
+
+	HGLRC opengl_rendering_context = wglCreateContext(main_device_context);
+	wglMakeCurrent(main_device_context, opengl_rendering_context);
+
 
 	//
 	// MAIN PROGRAM LOOP
@@ -69,9 +77,14 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 
 	MSG main_message_buffer = {};
 
-	while(GetMessage(&main_message_buffer, NULL, 0, 0) > 0){
-		TranslateMessage(&main_message_buffer);
-		DispatchMessage(&main_message_buffer);
+	while(main_message_buffer.message != WM_QUIT) {
+		if (PeekMessage(&main_message_buffer, NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&main_message_buffer);
+			DispatchMessage(&main_message_buffer);
+		}
+		glClearColor(0.8f, 0.0f, 0.7f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		SwapBuffers(main_device_context);
 	}
 
 	return 0;
@@ -84,6 +97,11 @@ main_window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 	switch (message) {
 		case WM_DESTROY:
 			PostQuitMessage(0);
+			return 0;
+		case WM_PAINT:
+			PAINTSTRUCT paint_struct;
+			BeginPaint(window, &paint_struct);
+			EndPaint(window, &paint_struct);
 			return 0;
 	}
 
