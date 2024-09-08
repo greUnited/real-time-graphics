@@ -106,6 +106,64 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	printf("Current OpenGL version: %s\n", glGetString(GL_VERSION));
 
 
+
+	// OpenGL attribute pointing
+	GLuint vertex_array;
+	glGenVertexArrays(1, &vertex_array);
+	glBindVertexArray(vertex_array);
+
+	// OpenGL buffer data
+	GLuint vertex_buffer;
+	glGenBuffers(1, &vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(temp_vertex_data), temp_vertex_data, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
+
+	// OpenGL shaders
+	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertex_shader, 1, &temp_vertex_shader_source, NULL);
+	glCompileShader(vertex_shader);
+
+	GLint shader_success;
+	char info_log[512];
+
+	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &shader_success);
+	if(shader_success == 0) {
+		glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
+		printf("Could not compile shader: %s\n", info_log);
+	}
+
+	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragment_shader, 1, &temp_fragment_shader_source, NULL);
+	glCompileShader(fragment_shader);
+
+	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &shader_success);
+	if(shader_success == 0) {
+		glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
+		printf("Could not compile shader: %s\n", info_log);
+	}
+
+	// OpenGL program
+	GLuint shader_program;
+	shader_program = glCreateProgram();
+
+	glAttachShader(shader_program, vertex_shader);
+	glAttachShader(shader_program, fragment_shader);
+	glLinkProgram(shader_program);
+
+	glGetProgramiv(shader_program, GL_LINK_STATUS, &shader_success);
+	if(shader_success == 0) {
+		glGetProgramInfoLog(shader_program, 512, NULL, info_log);
+	}
+
+	glUseProgram(shader_program);
+
+	// Clean up shaders
+	glDeleteShader(vertex_shader);
+	glDeleteShader(fragment_shader);
+
 	//
 	// MAIN PROGRAM LOOP
 	//
@@ -117,8 +175,9 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 			TranslateMessage(&main_message_buffer);
 			DispatchMessage(&main_message_buffer);
 		}
-		glClearColor(0.8f, 0.0f, 0.7f, 1.0f);
+		glClearColor(0.3f, 0.4f, 0.56f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 		SwapBuffers(main_device_context);
 	}
 
