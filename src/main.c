@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include "main.h"
 #include "wgl_file_loading.h"
+#include "wgl_transformation_maths.h"
+
+static float test_translate_x = 0.0f;
+vec3f uniform_translate;
 
 int WINAPI
 wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is_shown)
@@ -169,6 +173,17 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	glDeleteShader(vertex_shader);
 	glDeleteShader(fragment_shader);
 
+	// Uniforms
+	GLint uniform_loc = glGetUniformLocation(shader_program, "u_transform");
+	mat4f uniform_transform = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	};
+
+	uniform_translate[0] = test_translate_x;
+
 	//
 	// MAIN PROGRAM LOOP
 	//
@@ -183,7 +198,12 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 
 		glClearColor(0.3f, 0.4f, 0.56f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+		glUniformMatrix4fv(uniform_loc, 1, GL_FALSE, &uniform_transform[0][0]);
+		m_translate(uniform_transform, uniform_translate);
+
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+
 		SwapBuffers(main_device_context);
 
 	}
@@ -204,6 +224,12 @@ main_window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 			BeginPaint(window, &paint_struct);
 			EndPaint(window, &paint_struct);
 			return 0;
+		case WM_KEYDOWN:
+			if(w_param == VK_RIGHT) {
+				test_translate_x = 1.0f;
+				uniform_translate[0] = test_translate_x;
+			}
+		break;
 	}
 
 
