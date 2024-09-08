@@ -35,9 +35,41 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 
 	ShowWindow(window, is_shown);
 
+
+	//
+	// INITIALISE OPENGL CONTEXT
+	//
+	
+	PIXELFORMATDESCRIPTOR pixel_format_descriptor = {
+		sizeof(PIXELFORMATDESCRIPTOR),		// Size
+		1,									// Version
+		PFD_DRAW_TO_WINDOW |				// Enable drawing to window
+		PFD_SUPPORT_OPENGL |				// Enable OpenGL support
+		PFD_DOUBLEBUFFER   |				// Enable doublebuffering
+		PFD_TYPE_RGBA,						// Enable Red Green Blue Alpha
+		32,									// Enable 32 bit Colour depth
+		0, 0,								// Ignore red bits and red shift
+		0, 0,								// Ignore green bits and green shift
+		0, 0,								// Ignore blue bits and blue shift
+		0, 0,								// Ignore alpha bits and alpha shift
+		0, 									// Ignore bitplanes in accumulation buffer
+		0, 0, 0, 0,							// Ignore RGBA bits in accumulation buffer
+		24,									// Enable 24 bit depth buffer
+		8,									// Enable 8 bit stencil buffer
+		0, 									// Ignore auxliary buffer
+		0,									// Ignore layer type
+		0,									// Ignore overlay and underlay planes
+		0, 0, 0								// Ignore layer, visible and damage mask
+	};
+
+
+	//
+	// MAIN PROGRAM LOOP
+	//
+
 	MSG main_message_buffer = {};
 
-	while(GetMessage(&main_message_buffer, NULL, 0, 0) > 0) {
+	while(GetMessage(&main_message_buffer, NULL, 0, 0) > 0){
 		TranslateMessage(&main_message_buffer);
 		DispatchMessage(&main_message_buffer);
 	}
@@ -53,13 +85,6 @@ main_window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
-
-		case WM_PAINT:
-			PAINTSTRUCT paint_struct;
-			HDC device_context = BeginPaint(window, &paint_struct);
-			FillRect(device_context, &paint_struct.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-			EndPaint(window, &paint_struct);
-		return 0;
 	}
 
 
