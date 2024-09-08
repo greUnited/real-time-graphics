@@ -2,4 +2,4 @@
 
 set source=src\main.c
 
-cl /Zi %source% /Fe"bin\main.exe" user32.lib kernel32.lib gdi32.lib opengl32.lib
+cl /Zi /I"include" %source% /Fe"bin\main.exe" /link /LIBPATH:"lib" user32.lib kernel32.lib gdi32.lib opengl32.lib glew32.lib

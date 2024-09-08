@@ -1,5 +1,8 @@
 #include <windows.h>
+#include "glew/glew.h"
+#include "glew/wglew.h"
 #include <GL/gl.h>
+#include <stdio.h>
 #include "main.h"
 
 int WINAPI
@@ -32,6 +35,9 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	// Console for debugging
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
+
+	FILE *debug_output_redirect_file;
+	freopen_s(&debug_output_redirect_file, "CONOUT$", "w", stdout);
 
 	ShowWindow(window, is_shown);
 
@@ -67,8 +73,37 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	int pixel_format = ChoosePixelFormat(main_device_context, &pixel_format_descriptor);
 	SetPixelFormat(main_device_context, pixel_format, &pixel_format_descriptor);
 
+	// A temporary context for glew
 	HGLRC opengl_rendering_context = wglCreateContext(main_device_context);
 	wglMakeCurrent(main_device_context, opengl_rendering_context);
+
+	glewExperimental = GL_TRUE;
+	GLenum glew_error = glewInit();
+	if(glew_error != GLEW_OK) {
+		printf("Failed to initialise glew %d\n", glew_error);
+	} else {
+		printf("Glew succeeded in initalising %d\n", glew_error);
+	}
+
+	// Ugly, but... TODO(?)
+	int wgl_attribs[7];
+
+	if(wglewIsSupported("WGL_ARB_create_context")) {
+		printf("Glew is supported\n");
+		wgl_attribs[0] = WGL_CONTEXT_MAJOR_VERSION_ARB;
+		wgl_attribs[1] = 3;
+		wgl_attribs[2] = WGL_CONTEXT_MINOR_VERSION_ARB;
+		wgl_attribs[3] = 3;
+		wgl_attribs[4] = WGL_CONTEXT_PROFILE_MASK_ARB;
+		wgl_attribs[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+		wgl_attribs[6] = 0;
+	}
+
+	// Remake the 330 core version of OpenGL as our current context
+	opengl_rendering_context = wglCreateContextAttribsARB(main_device_context, NULL, wgl_attribs);
+	wglMakeCurrent(main_device_context, opengl_rendering_context);
+
+	printf("Current OpenGL version: %s\n", glGetString(GL_VERSION));
 
 
 	//
@@ -78,7 +113,7 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	MSG main_message_buffer = {};
 
 	while(main_message_buffer.message != WM_QUIT) {
-		if (PeekMessage(&main_message_buffer, NULL, 0, 0, PM_REMOVE)) {
+		if(PeekMessage(&main_message_buffer, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&main_message_buffer);
 			DispatchMessage(&main_message_buffer);
 		}
