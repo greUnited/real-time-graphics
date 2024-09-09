@@ -3,12 +3,21 @@
 #include "glew/wglew.h"
 #include <GL/gl.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "main.h"
 #include "wgl_file_loading.h"
 #include "wgl_transformation_maths.h"
 
 static float test_translate_x = 0.0f;
+static float test_translate_y = 0.0f;
+static float test_translate_z = 0.0f;
+char input_queue[4] = {0};
+
 vec3f uniform_translate;
+
+LARGE_INTEGER frequency, start, end;
+double delta_time = 0.0;
+DWORD tick_count = 0;
 
 int WINAPI
 wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is_shown)
@@ -182,25 +191,50 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
-	uniform_translate[0] = test_translate_x;
 
 	//
 	// MAIN PROGRAM LOOP
 	//
+	
+	// For the delta time in the main loop
+	QueryPerformanceFrequency(&frequency);
 
 	MSG main_message_buffer = {};
 
+	// Main loop
 	while(main_message_buffer.message != WM_QUIT) {
 		if(PeekMessage(&main_message_buffer, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&main_message_buffer);
 			DispatchMessage(&main_message_buffer);
 		}
 
+		// Do game updating here
+
+		// Get the delta time
+		QueryPerformanceCounter(&start);
+		Sleep(1);
+		if(input_queue[0] > 0) {
+			uniform_translate[0] += 0.5f * delta_time;
+		}
+		if(input_queue[1] > 0) {
+			uniform_translate[1] += 0.5f * delta_time;
+		}
+		if(input_queue[2] > 0) {
+			uniform_translate[0] -= 0.5f * delta_time;
+		}
+		if(input_queue[3] > 0) {
+			uniform_translate[1] -= 0.5f * delta_time;
+		}
+		m_translate(uniform_transform, uniform_translate);
+		QueryPerformanceCounter(&end);
+		delta_time = (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
+		printf("Delta time: %lf\n", delta_time);
+
+		// Generate the OpenGL output
 		glClearColor(0.3f, 0.4f, 0.56f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		glUniformMatrix4fv(uniform_loc, 1, GL_FALSE, &uniform_transform[0][0]);
-		m_translate(uniform_transform, uniform_translate);
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -225,13 +259,36 @@ main_window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 			EndPaint(window, &paint_struct);
 			return 0;
 		case WM_KEYDOWN:
+			// TODO
 			if(w_param == VK_RIGHT) {
-				test_translate_x = 1.0f;
-				uniform_translate[0] = test_translate_x;
+				input_queue[0] = 1;
+			}
+			if(w_param == VK_UP) {
+				input_queue[1] = 1;
+			}
+			if(w_param == VK_LEFT) {
+				input_queue[2] = 1;
+			}
+			if(w_param == VK_DOWN) {
+				input_queue[3] = 1;
+			}
+		break;
+		case WM_KEYUP:
+			// TODO
+			if(w_param == VK_RIGHT) {
+				input_queue[0] = 0;
+			}
+			if(w_param == VK_UP) {
+				input_queue[1] = 0;
+			}
+			if(w_param == VK_LEFT) {
+				input_queue[2] = 0;
+			}
+			if(w_param == VK_DOWN) {
+				input_queue[3] = 0;
 			}
 		break;
 	}
-
 
 	return DefWindowProc(window, message, w_param, l_param);
 }
