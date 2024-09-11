@@ -8,16 +8,9 @@
 #include "wgl_file_loading.h"
 #include "wgl_transformation_maths.h"
 
-static float test_translate_x = 0.0f;
-static float test_translate_y = 0.0f;
-static float test_translate_z = 0.0f;
+// These are temporary variables for testing transforms and inputs
 char input_queue[4] = {0};
-
-vec3f uniform_translate;
-
-LARGE_INTEGER frequency, start, end;
-double delta_time = 0.0;
-DWORD tick_count = 0;
+float cube_auto_rotation = 0.0f;
 
 int WINAPI
 wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is_shown)
@@ -38,7 +31,7 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 						MAIN_CLASS_NAME,
 						"Real Time Graphics",
 						WS_OVERLAPPEDWINDOW,
-						CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+						CW_USEDEFAULT, CW_USEDEFAULT, DEFAULT_WIN_WIDTH, DEFAULT_WIN_HEIGHT,
 						NULL, NULL, main_instance, NULL
 					);
 
@@ -49,12 +42,14 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	// Console for debugging
 	AllocConsole();
 	AttachConsole(GetCurrentProcessId());
+	
+	// Cache the performance frequency
+	QueryPerformanceFrequency(&w32perf_frequency);
 
 	FILE *debug_output_redirect_file;
 	freopen_s(&debug_output_redirect_file, "CONOUT$", "w", stdout);
 
 	ShowWindow(window, is_shown);
-
 
 	//
 	// INITIALISE OPENGL CONTEXT
@@ -120,6 +115,8 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	printf("Current OpenGL version: %s\n", glGetString(GL_VERSION));
 
 
+	glViewport(0, 0, DEFAULT_WIN_WIDTH, DEFAULT_WIN_HEIGHT);
+
 
 	// OpenGL attribute pointing
 	GLuint vertex_array;
@@ -130,7 +127,7 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	GLuint vertex_buffer;
 	glGenBuffers(1, &vertex_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(temp_vertex_data), temp_vertex_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_cube), vertices_cube, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
@@ -183,23 +180,39 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 	glDeleteShader(fragment_shader);
 
 	// Uniforms
-	GLint uniform_loc = glGetUniformLocation(shader_program, "u_transform");
-	mat4f uniform_transform = {
+	GLint uniform_loc_model = glGetUniformLocation(shader_program, "u_model");
+	GLint uniform_loc_view = glGetUniformLocation(shader_program, "u_view");
+	GLint uniform_loc_projection = glGetUniformLocation(shader_program, "u_projection");
+
+	mat4f uniform_transform_model = {
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
-		1.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
+	mat4f uniform_transform_view = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	};
+
+	mat4f uniform_transform_projection = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
+	};
 
 	//
 	// MAIN PROGRAM LOOP
 	//
-	
-	// For the delta time in the main loop
-	QueryPerformanceFrequency(&frequency);
 
 	MSG main_message_buffer = {};
+	float aspect_ratio = (float)DEFAULT_WIN_WIDTH / (float)DEFAULT_WIN_HEIGHT;
+	/* m_rotate_z(uniform_transform_model, 0.1f); */
+	glEnable(GL_DEPTH_TEST);
 
 	// Main loop
 	while(main_message_buffer.message != WM_QUIT) {
@@ -211,32 +224,29 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 		// Do game updating here
 
 		// Get the delta time
-		QueryPerformanceCounter(&start);
+		QueryPerformanceCounter(&w32perf_start_time);
+		// This is a placeholder sleep
 		Sleep(1);
-		if(input_queue[0] > 0) {
-			uniform_translate[0] += 0.5f * delta_time;
-		}
-		if(input_queue[1] > 0) {
-			uniform_translate[1] += 0.5f * delta_time;
-		}
-		if(input_queue[2] > 0) {
-			uniform_translate[0] -= 0.5f * delta_time;
-		}
-		if(input_queue[3] > 0) {
-			uniform_translate[1] -= 0.5f * delta_time;
-		}
-		m_translate(uniform_transform, uniform_translate);
-		QueryPerformanceCounter(&end);
-		delta_time = (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
-		printf("Delta time: %lf\n", delta_time);
+
+		QueryPerformanceCounter(&w32perf_end_time);
+		delta_time = (double)(w32perf_end_time.QuadPart - w32perf_start_time.QuadPart) / w32perf_frequency.QuadPart;
+
+		m_translate(uniform_transform_view, (vec3f){0.0f, -0.45f, -3.0f});
+		m_rotate_y(uniform_transform_model, cube_auto_rotation);
+		/* m_view_ortho(uniform_transform_projection, -aspect_ratio, aspect_ratio, -1.0f, 1.0f, 0.1f, 100.0f); */
+		m_view_perspective(uniform_transform_projection, 45.0f, aspect_ratio, 0.1f, 100.0f);
+		cube_auto_rotation += 2.0f * delta_time;
 
 		// Generate the OpenGL output
 		glClearColor(0.3f, 0.4f, 0.56f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUniformMatrix4fv(uniform_loc, 1, GL_FALSE, &uniform_transform[0][0]);
+		glUniformMatrix4fv(uniform_loc_model, 1, GL_FALSE, &uniform_transform_model[0][0]);
+		glUniformMatrix4fv(uniform_loc_view, 1, GL_FALSE, &uniform_transform_view[0][0]);
+		glUniformMatrix4fv(uniform_loc_projection, 1, GL_FALSE, &uniform_transform_projection[0][0]);
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		SwapBuffers(main_device_context);
 
