@@ -9,7 +9,7 @@
 #include "wgl_transformation_maths.h"
 
 // These are temporary variables for testing transforms and inputs
-char input_queue[4] = {0};
+UINT_PTR input_queue[16] = {0};
 float cube_auto_rotation = 0.0f;
 
 int WINAPI
@@ -191,6 +191,9 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
+	vec3f item_rotate_axis = {100.0f, 255.0f, 255.0f};
+	vec3f item_translate = {0.0f, 0.0f, -3.0f};
+
 	mat4f uniform_transform_view = {
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -221,6 +224,21 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 			DispatchMessage(&main_message_buffer);
 		}
 
+		for(int i = 0; i < 16; i++) {
+			if(input_queue[i] == VK_RIGHT) {
+				item_translate[0] += 0.08f * delta_time;
+			}
+			if(input_queue[i] == VK_LEFT) {
+				item_translate[0] -= 0.08f * delta_time;
+			}
+			if(input_queue[i] == VK_UP) {
+				item_translate[1] += 0.06f * delta_time;
+			}
+			if(input_queue[i] == VK_DOWN) {
+				item_translate[1] -= 0.06f * delta_time;
+			}
+		}
+
 		// Do game updating here
 
 		// Get the delta time
@@ -230,9 +248,14 @@ wWinMain(HINSTANCE main_instance, HINSTANCE prev_instance, PWSTR command, int is
 
 		QueryPerformanceCounter(&w32perf_end_time);
 		delta_time = (double)(w32perf_end_time.QuadPart - w32perf_start_time.QuadPart) / w32perf_frequency.QuadPart;
+		if(delta_time == 0.0) {
+			delta_time = 1.0;
+		}
+		printf("Delta time: %lf\n", delta_time);
 
-		m_translate(uniform_transform_view, (vec3f){0.0f, -0.45f, -3.0f});
-		m_rotate_y(uniform_transform_model, cube_auto_rotation);
+		m_translate(uniform_transform_view, item_translate); 
+		/* m_rotate_y(uniform_transform_model, cube_auto_rotation); */
+		m_rotate_axis(uniform_transform_model, item_rotate_axis, cube_auto_rotation);
 		/* m_view_ortho(uniform_transform_projection, -aspect_ratio, aspect_ratio, -1.0f, 1.0f, 0.1f, 100.0f); */
 		m_view_perspective(uniform_transform_projection, 45.0f, aspect_ratio, 0.1f, 100.0f);
 		cube_auto_rotation += 2.0f * delta_time;
@@ -269,33 +292,17 @@ main_window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 			EndPaint(window, &paint_struct);
 			return 0;
 		case WM_KEYDOWN:
-			// TODO
-			if(w_param == VK_RIGHT) {
-				input_queue[0] = 1;
-			}
-			if(w_param == VK_UP) {
-				input_queue[1] = 1;
-			}
-			if(w_param == VK_LEFT) {
-				input_queue[2] = 1;
-			}
-			if(w_param == VK_DOWN) {
-				input_queue[3] = 1;
+			for(int i = 0; i < 16; i++) {
+				if(input_queue[i] == 0) {
+					input_queue[i] = w_param;
+				}
 			}
 		break;
 		case WM_KEYUP:
-			// TODO
-			if(w_param == VK_RIGHT) {
-				input_queue[0] = 0;
-			}
-			if(w_param == VK_UP) {
-				input_queue[1] = 0;
-			}
-			if(w_param == VK_LEFT) {
-				input_queue[2] = 0;
-			}
-			if(w_param == VK_DOWN) {
-				input_queue[3] = 0;
+			for(int i = 0; i < 16; i++) {
+				if(input_queue[i] == w_param) {
+					input_queue[i] = 0;
+				}
 			}
 		break;
 	}

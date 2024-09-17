@@ -15,6 +15,11 @@ typedef float vec3f[3];
 typedef float vec4f[4];
 typedef float mat4f[4][4];
 
+typedef struct {
+	vec3f vec;
+	float scalar;
+} Quaternion;
+
 // TODO: Set out the needed transformation functions
 
 float
@@ -22,6 +27,12 @@ vec3f_magnitude(vec3f vec);
 
 void
 vec3f_normalize(vec3f vec);
+
+float
+vec3f_dot_product(vec3f a, vec3f b);
+
+void
+vec3f_cross_product(vec3f a, vec3f b, vec3f dest);
 
 // Affine transformations
 void

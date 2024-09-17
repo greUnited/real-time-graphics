@@ -15,6 +15,20 @@ vec3f_normalize(vec3f vec)
 	vec[2] = vec[2] / vec_magnitude;
 }
 
+float
+vec3f_dot_product(vec3f a, vec3f b)
+{
+	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+void
+vec3f_cross_product(vec3f a, vec3f b, vec3f dest)
+{
+	dest[0] = (a[1] * b[2]) - (a[2] - b[1]);
+	dest[1] = (a[2] * b[0]) - (a[0] - b[2]);
+	dest[2] = (a[0] * b[1]) - (a[1] - b[0]);
+}
+
 // Affine transformations
 void
 m_translate(mat4f mat, vec3f vec)
@@ -64,7 +78,30 @@ m_rotate_z(mat4f mat, float angle)
 void
 m_rotate_axis(mat4f mat, vec3f axis, float angle)
 {
-	// TODO
+	float angle_cos = cosf(angle), angle_sin = sinf(angle);
+
+	vec3f axis_norm = {axis[0], axis[1], axis[2]};
+	vec3f_normalize(axis_norm);
+
+	mat[0][0] = (1 - angle_cos) * axis_norm[0] * axis_norm[0] + angle_cos;
+	mat[0][1] = (1 - angle_cos) * axis_norm[0] * axis_norm[1] + angle_sin * axis_norm[2];
+	mat[0][2] = (1 - angle_cos) * axis_norm[0] * axis_norm[2] - angle_sin * axis_norm[1];
+	mat[0][3] = 0.0f;
+
+	mat[1][0] = (1 - angle_cos) * axis_norm[0] * axis_norm[1] - angle_sin * axis_norm[2];
+	mat[1][1] = (1 - angle_cos) * axis_norm[1] * axis_norm[1] + angle_cos;
+	mat[1][2] = (1 - angle_cos) * axis_norm[1] * axis_norm[2] + angle_sin * axis_norm[0];
+	mat[1][3] = 0.0f;
+
+	mat[2][0] = (1 - angle_cos) * axis_norm[0] * axis_norm[2] + angle_sin * axis_norm[1];
+	mat[2][1] = (1 - angle_cos) * axis_norm[1] * axis_norm[2] - angle_sin * axis_norm[0];
+	mat[2][2] = (1 - angle_cos) * axis_norm[2] * axis_norm[2] + angle_cos;
+	mat[2][3] = 0.0f;
+
+	mat[3][0] = 0.0f;
+	mat[3][1] = 0.0f;
+	mat[3][2] = 0.0f;
+	mat[3][3] = 1.0f;
 }
 
 void
